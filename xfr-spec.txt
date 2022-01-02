@@ -1,0 +1,28 @@
+the very first VarInt is the xfr version
+
+each command is identified by a VarInt, followed by it's data
+string lengths are indicated by a VarInt prefix
+
+0 - end of commands
+
+1 - file list
+  VarInt filecount
+  list of [filecount] Strings
+
+  the first file in the list is at index 1
+  index 0 refers to the xfr itself
+
+2 - data chunk
+  VarInt transformedOffset
+  VarInt fileIndex
+  VarInt offset
+  VarInt length
+
+  if fileIndex is 0 (meaning referring to the xfr file itself)
+  then when seeking, add the offset of the end of the 0 command
+
+3 - file name
+  String name
+
+4 - parent directory levels to scan
+  VarInt max number of levels to scan

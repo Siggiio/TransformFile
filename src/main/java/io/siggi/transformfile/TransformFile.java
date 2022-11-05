@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TransformFile extends InputStream {
+    private static final int HIGHEST_SUPPORTED_VERSION = 0;
     final String[] files;
     final DataChunk[] chunks;
     final long dataFileOffset;
@@ -40,6 +41,9 @@ public class TransformFile extends InputStream {
             raf = new RandomAccessFile(file, "r");
             RafInputStream in = new RafInputStream(raf, false);
             int version = (int) Util.readVarInt(in);
+            if (version > HIGHEST_SUPPORTED_VERSION) {
+                throw new IOException("Max supported version is " + HIGHEST_SUPPORTED_VERSION + ", but found version " + version + ".");
+            }
             int parentScan = 0;
             readLoop:
             while (true) {

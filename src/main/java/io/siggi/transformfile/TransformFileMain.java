@@ -50,6 +50,8 @@ public class TransformFileMain {
             System.out.println("-Dmatchsize=[512] = minimum size to consider identical data a match");
             System.out.println("-Dlookahead=[-1] = maximum distance to look ahead when composing");
             System.out.println("-Dlookbehind=[-1] = maximum distance to look behind when composing");
+            System.out.println("-Dskipxfrchunks=[0] = set to 1 to skip non redundant data");
+            System.out.println("    - useful if you are going to flip then discard the original xfr file.");
             return;
         }
         switch (command) {
@@ -58,13 +60,14 @@ public class TransformFileMain {
                 int matchSize = Integer.parseInt(System.getProperty("matchsize", "512"));
                 long lookahead = Util.parseSize(System.getProperty("lookahead", "0"));
                 long lookbehind = Util.parseSize(System.getProperty("lookbehind", "-1"));
+                boolean skipNonRedundantData = Integer.parseInt(System.getProperty("skipxfrchunks", "0")) != 0;
                 String outputFile = new String(args[1]);
                 String finalFile = new String(args[2]);
                 List<String> originFiles = new ArrayList<>();
                 for (int i = 3; i < args.length; i++) {
                     originFiles.add(args[i]);
                 }
-                TransformFileComposer.transform(lookahead, lookbehind, matchSize, outputFile, finalFile, originFiles.toArray(new String[originFiles.size()]));
+                TransformFileComposer.transform(lookahead, lookbehind, matchSize, !skipNonRedundantData, outputFile, finalFile, originFiles.toArray(new String[originFiles.size()]));
             }
             break;
             case "info":

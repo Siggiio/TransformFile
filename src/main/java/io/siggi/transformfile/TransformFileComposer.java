@@ -78,7 +78,7 @@ public class TransformFileComposer implements Closeable {
         expansionBytesB = new byte[matchSize];
     }
 
-    public static void transform(long lookahead, long lookbehind, int matchSize, String transformerFile, String finalFile, String... originFiles) throws IOException {
+    public static void transform(long lookahead, long lookbehind, int matchSize, boolean copyNonRedundantData, String transformerFile, String finalFile, String... originFiles) throws IOException {
         long now = System.currentTimeMillis();
         long lastUpdate = now;
         try (TransformFileComposer composer = new TransformFileComposer(lookahead, lookbehind, matchSize, transformerFile, finalFile, originFiles)) {
@@ -98,8 +98,10 @@ public class TransformFileComposer implements Closeable {
                     System.out.println();
                 }
             }
-            System.out.println("Copying non-redundant data");
-            composer.finish();
+            if (copyNonRedundantData)
+                System.out.println("Copying non-redundant data");
+            composer.finish(copyNonRedundantData);
+            System.out.println("Finished!");
         }
     }
 
@@ -214,8 +216,9 @@ public class TransformFileComposer implements Closeable {
         writeVarInt(out, result.length);
     }
 
-    private void finish() throws IOException {
+    private void finish(boolean copyNonRedundantData) throws IOException {
         writeVarInt(out, 0); // end of commands
+        if (!copyNonRedundantData) return;
         for (SearchResult result : resultsFromDestination) {
             finalRaf.seek(result.offset);
             try (InputStream in = result.overrideInput != null

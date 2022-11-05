@@ -35,12 +35,18 @@ public class TransformFileMain {
         } else {
             System.out.println("Create a new xfr:");
             System.out.println("    compose output.xfr destination.dat origin.dat [origin2.dat] [origin3.dat]");
+            System.out.println("      Origins can be specified as intermediateDestination:xfrfile where the");
+            System.out.println("      xfrfile produces the intermediate destinationfile. The output xfr will point");
+            System.out.println("      to the original file.");
+            System.out.println("    aliases: c");
             System.out.println("Get information on an xfr file:");
-            System.out.println("    info file.xfr");
+            System.out.println("    info file.xfr - Print info on the xfr");
+            System.out.println("    biginfo file.xfr - Print info on the xfr and also chunk data");
             System.out.println("Transform a file into another:");
             System.out.println("    transform file.xfr output.dat - destination filename specified by you");
             System.out.println("    transform file.xfr - destination filename specified inside the xfr");
             System.out.println("      use \"-\" as destination to output to stdout");
+            System.out.println("    aliases: t");
             System.out.println("Flip transformation:");
             System.out.println("    flip file.xfr dependencyIndex output.xfr newSourceFileName.dat");
             System.out.println("Optimize xfr:");

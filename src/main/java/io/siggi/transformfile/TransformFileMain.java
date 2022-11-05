@@ -48,7 +48,7 @@ public class TransformFileMain {
             System.out.println("      use \"-\" as destination to output to stdout");
             System.out.println("    aliases: t");
             System.out.println("Flip transformation:");
-            System.out.println("    flip file.xfr dependencyIndex output.xfr newSourceFileName.dat");
+            System.out.println("    flip file.xfr dependencyIndex output.xfr [newSourceFileName.dat]");
             System.out.println("Optimize xfr:");
             System.out.println("    optimize input.xfr output.xfr");
             System.out.println();
@@ -150,7 +150,8 @@ public class TransformFileMain {
                 try (TransformFile tf = new TransformFile(new File(args[1]))) {
                     try (FileOutputStream out = new FileOutputStream(args[3])) {
                         int fileIndex = Integer.parseInt(args[2]);
-                        TransformFileFlipper.flip(tf, fileIndex, out, args[4], new File(tf.files[fileIndex]));
+                        String newSourceName = args.length > 4 ? args[4] : tf.files[fileIndex];
+                        TransformFileFlipper.flip(tf, fileIndex, out, newSourceName, new File(tf.files[fileIndex]));
                     }
                 }
             }

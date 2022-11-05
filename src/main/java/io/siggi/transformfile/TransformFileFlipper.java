@@ -63,7 +63,7 @@ public class TransformFileFlipper {
 
         if (file.getFilename() != null) {
             writeVarInt(out, 3); // filename
-            writeString(out, file.getFilename());
+            writeString(out, file.files[indexToFlip]);
         }
 
         writeVarInt(out, 1); // file list

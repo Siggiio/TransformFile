@@ -157,7 +157,7 @@ public class TransformFileMain {
                 try (TransformFile tf = new TransformFile(new File(args[1]))) {
                     try (FileOutputStream out = new FileOutputStream(args[3])) {
                         int fileIndex = Integer.parseInt(args[2]);
-                        String newSourceName = args.length > 4 ? args[4] : tf.files[fileIndex];
+                        String newSourceName = args.length > 4 ? args[4] : tf.getFilename();
                         TransformFileFlipper.flip(tf, fileIndex, out, newSourceName, new File(tf.files[fileIndex]));
                     }
                 }

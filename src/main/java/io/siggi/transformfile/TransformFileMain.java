@@ -46,7 +46,9 @@ public class TransformFileMain {
             System.out.println("    transform file.xfr output.dat - destination filename specified by you");
             System.out.println("    transform file.xfr - destination filename specified inside the xfr");
             System.out.println("      use \"-\" as destination to output to stdout");
-            System.out.println("    aliases: t");
+            System.out.println("    aliases: t, tt");
+            System.out.println("      if alias \"tt\" is used, output will be to stdout unless specified otherwise");
+            System.out.println("      this could be useful if the xfr produces a tar file which can be piped to tar xf");
             System.out.println("Flip transformation:");
             System.out.println("    flip file.xfr dependencyIndex output.xfr [newSourceFileName.dat]");
             System.out.println("Optimize xfr:");
@@ -118,8 +120,13 @@ public class TransformFileMain {
             }
             break;
             case "t":
+            case "tt":
             case "transform": {
                 File xfrFile = new File(args[1]);
+                if (command.equals("tt") && args.length == 2) {
+                    args = Arrays.copyOf(args, 3);
+                    args[2] = "-";
+                }
                 if (args.length == 2) {
                     try (TransformFile in = new TransformFile(xfrFile)) {
                         String destinationFile = in.getFilename();

@@ -1,5 +1,6 @@
 package io.siggi.transformfile;
 
+import io.siggi.transformfile.io.CountingInputStream;
 import io.siggi.transformfile.io.LimitInputStream;
 import io.siggi.transformfile.io.RafInputStream;
 import io.siggi.transformfile.io.Util;
@@ -39,7 +40,9 @@ public class TransformFile extends InputStream {
             List<String> fileList = null;
             List<DataChunk> dataChunks = new LinkedList<>();
             raf = new RandomAccessFile(file, "r");
-            RafInputStream in = new RafInputStream(raf, false);
+            RafInputStream rafIn = new RafInputStream(raf, false);
+            InputStream bufferedIn = new BufferedInputStream(rafIn);
+            CountingInputStream in = new CountingInputStream(bufferedIn);
             int version = (int) Util.readVarInt(in);
             if (version > HIGHEST_SUPPORTED_VERSION) {
                 throw new IOException("Max supported version is " + HIGHEST_SUPPORTED_VERSION + ", but found version " + version + ".");
@@ -50,7 +53,7 @@ public class TransformFile extends InputStream {
                 int command = (int) Util.readVarInt(in);
                 switch (command) {
                     case 0: // end of commands
-                        dataFileOffset = raf.getFilePointer();
+                        dataFileOffset = in.getCount();
                         break readLoop;
                     case 1: { // file list
                         int fileCount = (int) Util.readVarInt(in);

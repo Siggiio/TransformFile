@@ -1,12 +1,12 @@
 package io.siggi.transformfile;
 
-public class DataChunk {
-    final long transformedOffset;
-    final int file;
-    final long offset;
-    final long length;
+public final class DataChunk {
+    public final long transformedOffset;
+    public final int file;
+    public final long offset;
+    public final long length;
 
-    DataChunk(long transformedOffset, int file, long offset, long length) {
+    public DataChunk(long transformedOffset, int file, long offset, long length) {
         this.transformedOffset = transformedOffset;
         this.file = file;
         this.offset = offset;

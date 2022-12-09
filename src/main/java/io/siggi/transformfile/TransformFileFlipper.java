@@ -3,10 +3,16 @@ package io.siggi.transformfile;
 import io.siggi.transformfile.io.LimitInputStream;
 import io.siggi.transformfile.io.RafInputStream;
 
+import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.types.PacketEnd;
+import io.siggi.transformfile.packet.types.PacketFileList;
+import io.siggi.transformfile.packet.types.PacketFileName;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -58,26 +64,21 @@ public class TransformFileFlipper {
             currentPosition += selfChunk.length;
         }
 
+        PacketIO packetIO = PacketIO.getDefault();
 
-        writeVarInt(out, 0); // version
+        packetIO.writeFileHeader(out);
 
         if (file.getFilename() != null) {
-            writeVarInt(out, 3); // filename
-            writeString(out, file.files[indexToFlip]);
+            packetIO.write(out, new PacketFileName(file.files[indexToFlip]));
         }
 
-        writeVarInt(out, 1); // file list
-        writeVarInt(out, 1);
-        writeString(out, newSourceName);
+        packetIO.write(out, new PacketFileList(Arrays.asList(new String[]{newSourceName})));
 
         for (DataChunk chunk : newChunks) {
-            writeVarInt(out, 2); // chunk
-            writeVarInt(out, chunk.transformedOffset);
-            writeVarInt(out, chunk.file);
-            writeVarInt(out, chunk.offset);
-            writeVarInt(out, chunk.length);
+            packetIO.write(out, chunk);
         }
-        writeVarInt(out, 0); // end
+
+        packetIO.write(out, PacketEnd.instance);
 
         if (!indexZeroChunks.isEmpty()) {
             try (RandomAccessFile raf = new RandomAccessFile(newDestination, "r")) {

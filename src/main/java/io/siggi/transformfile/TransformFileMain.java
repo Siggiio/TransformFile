@@ -1,5 +1,6 @@
 package io.siggi.transformfile;
 
+import io.siggi.transformfile.exception.TransformFileException;
 import io.siggi.transformfile.io.Util;
 
 import java.io.File;
@@ -12,7 +13,7 @@ import java.util.List;
 import static io.siggi.transformfile.io.Util.copy;
 
 public class TransformFileMain {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, TransformFileException {
         // compose matchSize output.xfr destination.dat origin.dat [origin2.dat] [origin3.dat]
         // transform file.xfr output.xfr
         // transform file.xfr (stdout)

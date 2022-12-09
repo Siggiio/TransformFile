@@ -2,6 +2,10 @@ package io.siggi.transformfile;
 
 import io.siggi.transformfile.io.RafInputStream;
 
+import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.types.PacketEnd;
+import io.siggi.transformfile.packet.types.PacketFileList;
+import io.siggi.transformfile.packet.types.PacketFileName;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -28,17 +32,15 @@ public class TransformFileOptimizer {
         }
         remap.put("", 0);
 
-        writeVarInt(out, 0); // version
+        PacketIO packetIO = PacketIO.getDefault();
+
+        packetIO.writeFileHeader(out);
 
         if (tf.getFilename() != null) {
-            writeVarInt(out, 3); // filename
-            writeString(out, tf.getFilename());
+            packetIO.write(out, new PacketFileName(tf.getFilename()));
         }
 
-        writeVarInt(out, 1); // file list
-        writeVarInt(out, newFiles.size());
-        for (String newFile : newFiles)
-            writeString(out, newFile);
+        packetIO.write(out, new PacketFileList(newFiles));
 
         List<DataChunk> chunks = new LinkedList<>();
 
@@ -55,13 +57,9 @@ public class TransformFileOptimizer {
         }
 
         for (DataChunk chunk : chunks) {
-            writeVarInt(out, 2); // chunk
-            writeVarInt(out, chunk.transformedOffset);
-            writeVarInt(out, remap.get(tf.files[chunk.file]));
-            writeVarInt(out, chunk.offset);
-            writeVarInt(out, chunk.length);
+            packetIO.write(out, chunk);
         }
-        writeVarInt(out, 0); // end
+        packetIO.write(out, PacketEnd.instance);
 
         RandomAccessFile raf = tf.rafs[0];
         raf.seek(tf.dataFileOffset);

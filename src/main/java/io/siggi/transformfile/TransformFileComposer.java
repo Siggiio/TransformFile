@@ -1,13 +1,30 @@
 package io.siggi.transformfile;
 
+import io.siggi.transformfile.exception.IncompatibleFileException;
+import io.siggi.transformfile.exception.TransformFileException;
 import io.siggi.transformfile.io.LimitInputStream;
 import io.siggi.transformfile.io.RafInputStream;
 import io.siggi.transformfile.io.Util;
-
-import java.io.*;
-import java.util.*;
-
-import static io.siggi.transformfile.io.Util.*;
+import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.types.PacketDataChunk;
+import io.siggi.transformfile.packet.types.PacketEnd;
+import io.siggi.transformfile.packet.types.PacketFileList;
+import io.siggi.transformfile.packet.types.PacketFileName;
+import java.io.Closeable;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import static io.siggi.transformfile.io.Util.copy;
+import static io.siggi.transformfile.io.Util.writeString;
+import static io.siggi.transformfile.io.Util.writeVarInt;
 
 public class TransformFileComposer implements Closeable {
     private static final int bufferSize = 16384;
@@ -35,7 +52,20 @@ public class TransformFileComposer implements Closeable {
     private byte[] bufferB = new byte[bufferSize];
     private byte[] tmpBuffer = new byte[bufferA.length + bufferB.length];
 
-    private TransformFileComposer(long lookahead, long lookbehind, int matchSize, String transformerFile, String finalFile, String... originFiles) throws IOException {
+    private boolean alreadyWroteHeader = false;
+    private PacketIO packetIO;
+
+    public PacketIO getPacketIO() {
+        if (packetIO == null) packetIO = PacketIO.getDefault();
+        return packetIO;
+    }
+
+    public void setPacketIO(PacketIO packetIO) {
+        if (alreadyWroteHeader) throw new IllegalStateException("Cannot set packetIO because we already wrote the file header");
+        this.packetIO = packetIO;
+    }
+
+    private TransformFileComposer(long lookahead, long lookbehind, int matchSize, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
         this.lookahead = lookahead;
         this.lookbehind = lookbehind;
         this.matchSize = matchSize;
@@ -78,7 +108,7 @@ public class TransformFileComposer implements Closeable {
         expansionBytesB = new byte[matchSize];
     }
 
-    public static void transform(long lookahead, long lookbehind, int matchSize, boolean copyNonRedundantData, String transformerFile, String finalFile, String... originFiles) throws IOException {
+    public static void transform(long lookahead, long lookbehind, int matchSize, boolean copyNonRedundantData, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
         long now = System.currentTimeMillis();
         long lastUpdate = now;
         try (TransformFileComposer composer = new TransformFileComposer(lookahead, lookbehind, matchSize, transformerFile, finalFile, originFiles)) {
@@ -138,22 +168,26 @@ public class TransformFileComposer implements Closeable {
     }
 
     private void writeHeader() throws IOException {
-        writeVarInt(out, 0); // version
+        if (alreadyWroteHeader) {
+            throw new IllegalStateException("Already wrote header");
+        }
+        alreadyWroteHeader = true;
+        getPacketIO();
+        packetIO.writeFileHeader(out);
 
-        writeVarInt(out, 3); // destination file name
-        writeString(out, finalFile.getName());
+        packetIO.write(out, new PacketFileName(finalFile.getName()));
 
-        writeVarInt(out, 1); // file list
-        writeVarInt(out, originFiles.length);
+        List<String> fileList = new ArrayList<>(originFiles.length);
         for (int i = 0; i < originFiles.length; i++) {
             File originFile = originFiles[i];
             TransformFile translate = translateFiles[i];
             if (translate != null) {
-                writeString(out, translate.files[1]); // the first file is at index 1
+                fileList.add(translate.files[1]); // the first file is at index 1
             } else {
-                writeString(out, originFile.toString().replace("\\", "/"));
+                fileList.add(originFile.toString().replace("\\", "/"));
             }
         }
+        packetIO.write(out, new PacketFileList(fileList));
     }
 
     private void addResult(SearchResult result) throws IOException {
@@ -204,20 +238,18 @@ public class TransformFileComposer implements Closeable {
     }
 
     private void writeResult(SearchResult result) throws IOException {
-        writeVarInt(out, 2);
-        writeVarInt(out, result.destinationOffset);
-        writeVarInt(out, result.fileIndex);
+        long offset;
         if (result.fileIndex == 0) {
-            writeVarInt(out, destXfrPointer);
+            offset = destXfrPointer;
             destXfrPointer += result.length;
         } else {
-            writeVarInt(out, result.offset);
+            offset = result.offset;
         }
-        writeVarInt(out, result.length);
+        packetIO.write(out, new DataChunk(result.destinationOffset, result.fileIndex, offset, result.length));
     }
 
     private void finish(boolean copyNonRedundantData) throws IOException {
-        writeVarInt(out, 0); // end of commands
+        packetIO.write(out, PacketEnd.instance);
         if (!copyNonRedundantData) return;
         for (SearchResult result : resultsFromDestination) {
             finalRaf.seek(result.offset);

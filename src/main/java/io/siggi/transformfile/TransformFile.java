@@ -1,17 +1,22 @@
 package io.siggi.transformfile;
 
+import io.siggi.transformfile.exception.TransformFileException;
 import io.siggi.transformfile.io.CountingInputStream;
 import io.siggi.transformfile.io.LimitInputStream;
 import io.siggi.transformfile.io.RafInputStream;
 import io.siggi.transformfile.io.Util;
 
+import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.types.Packet;
+import io.siggi.transformfile.packet.types.PacketDataChunk;
+import io.siggi.transformfile.packet.types.PacketFileList;
+import io.siggi.transformfile.packet.types.PacketFileName;
+import io.siggi.transformfile.packet.types.PacketParentDirectoryDistance;
 import java.io.*;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class TransformFile extends InputStream {
-    private static final int HIGHEST_SUPPORTED_VERSION = 0;
     final String[] files;
     final DataChunk[] chunks;
     final long dataFileOffset;
@@ -26,8 +31,9 @@ public class TransformFile extends InputStream {
     private InputStream currentInput = null;
     private long currentOffset = 0L;
     private int getChunksLastPosition = 0;
+    private final PacketIO packetIO;
 
-    public TransformFile(File file) throws IOException {
+    public TransformFile(File file) throws IOException, TransformFileException {
         boolean success = false;
         RandomAccessFile raf = null;
         try {
@@ -44,24 +50,22 @@ public class TransformFile extends InputStream {
             InputStream bufferedIn = new BufferedInputStream(rafIn);
             CountingInputStream in = new CountingInputStream(bufferedIn);
             int version = (int) Util.readVarInt(in);
-            if (version > HIGHEST_SUPPORTED_VERSION) {
-                throw new IOException("Max supported version is " + HIGHEST_SUPPORTED_VERSION + ", but found version " + version + ".");
-            }
+            packetIO = PacketIO.get(version);
             int parentScan = 0;
             readLoop:
             while (true) {
-                int command = (int) Util.readVarInt(in);
-                switch (command) {
-                    case 0: // end of commands
+                Packet packet = packetIO.read(in);
+                switch (packet.getPacketType()) {
+                    case END:
                         dataFileOffset = in.getCount();
                         break readLoop;
-                    case 1: { // file list
-                        int fileCount = (int) Util.readVarInt(in);
-                        fileList = new ArrayList<>(fileCount + 1);
-                        fileList.add("");
+                    case FILE_LIST: {
+                        PacketFileList packetFileList = (PacketFileList) packet;
+                        fileList = packetFileList.getFileList();
+                        fileList.add(0, "");
                         fileList:
-                        for (int i = 0; i < fileCount; i++) {
-                            String name = Util.readString(in, 4096);
+                        for (int i = 1; i < fileList.size(); i++) {
+                            String name = fileList.get(i);
                             String[] names = name.split(":");
                             for (int j = 0; j < names.length; j++) {
                                 String n = names[j];
@@ -77,35 +81,32 @@ public class TransformFile extends InputStream {
                                     String path = parentScanPrefix + names[j];
                                     File f = new File(parentDirectory, path);
                                     if (f.exists()) {
-                                        fileList.add(path);
+                                        fileList.set(i, path);
                                         continue fileList;
                                     }
                                     parentScanPrefix += "../";
                                 }
                             }
-                            fileList.add(names[0]);
+                            fileList.set(i, names[0]);
                         }
                     }
                     break;
-                    case 2: { // data chunk
-                        long transformedOffset = Util.readVarInt(in);
-                        int fileIndex = (int) Util.readVarInt(in);
-                        long offset = Util.readVarInt(in);
-                        long length = Util.readVarInt(in);
-                        dataChunks.add(new DataChunk(transformedOffset, fileIndex, offset, length));
-                        highLength = Math.max(highLength, offset + length);
+                    case DATA_CHUNK: {
+                        DataChunk dataChunk = ((PacketDataChunk) packet).getDataChunk();
+                        dataChunks.add(dataChunk);
+                        highLength = Math.max(highLength, dataChunk.offset + dataChunk.length);
                     }
                     break;
-                    case 3: { // file name
-                        filename = Util.readString(in, 4096);
+                    case FILE_NAME: {
+                        filename = ((PacketFileName) packet).getFileName();
                     }
                     break;
-                    case 4: { // parent directory distance to scan for dependency files
-                        parentScan = (int) Util.readVarInt(in);
+                    case PARENT_DIRECTORY_DISTANCE: {
+                        parentScan = ((PacketParentDirectoryDistance) packet).getDistance();
                     }
                     break;
                     default: {
-                        throw new IOException("Invalid TransformFile - Unknown command ID " + command);
+                        throw new IOException("Invalid TransformFile - Unhandled packet type " + packet.getPacketType());
                     }
                 }
             }

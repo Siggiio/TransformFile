@@ -74,9 +74,10 @@ public class TransformFile extends InputStream {
                             for (int j = 0; j < names.length; j++) {
                                 String parentScanPrefix = "";
                                 for (int k = 0; k <= parentScan; k++) {
-                                    File f = new File(parentScanPrefix + names[j]);
+                                    String path = parentScanPrefix + names[j];
+                                    File f = new File(parentDirectory, path);
                                     if (f.exists()) {
-                                        fileList.add(parentScanPrefix + names[j]);
+                                        fileList.add(path);
                                         continue fileList;
                                     }
                                     parentScanPrefix += "../";

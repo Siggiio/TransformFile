@@ -37,21 +37,21 @@ public class TransformFileFlipper {
                 if (chunk.offset + chunk.length < currentPosition)
                     continue;
                 long skipBytes = currentPosition - chunk.offset;
-                chunk = new DataChunk(null, chunk.transformedOffset + skipBytes, chunk.file, chunk.offset + skipBytes, chunk.length - skipBytes);
+                chunk = new DataChunk(chunk.transformedOffset + skipBytes, chunk.file, chunk.offset + skipBytes, chunk.length - skipBytes);
             }
             if (currentPosition < chunk.offset) {
-                DataChunk selfChunk = new DataChunk(null, currentPosition, 0, xfrPosition, chunk.offset - currentPosition);
+                DataChunk selfChunk = new DataChunk(currentPosition, 0, xfrPosition, chunk.offset - currentPosition);
                 newChunks.add(selfChunk);
                 indexZeroChunks.add(selfChunk);
                 xfrPosition += chunk.offset - currentPosition;
                 currentPosition += selfChunk.length;
             }
             // swapping offset and transformedOffset is not a mistake!
-            newChunks.add(new DataChunk(null, chunk.offset, 1, chunk.transformedOffset, chunk.length));
+            newChunks.add(new DataChunk(chunk.offset, 1, chunk.transformedOffset, chunk.length));
             currentPosition += chunk.length;
         }
         if (currentPosition < fileLength) {
-            DataChunk selfChunk = new DataChunk(null, currentPosition, 0, xfrPosition, fileLength - currentPosition);
+            DataChunk selfChunk = new DataChunk(currentPosition, 0, xfrPosition, fileLength - currentPosition);
             newChunks.add(selfChunk);
             indexZeroChunks.add(selfChunk);
             xfrPosition += fileLength - currentPosition;

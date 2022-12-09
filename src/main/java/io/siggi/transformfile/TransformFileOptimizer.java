@@ -73,6 +73,6 @@ public class TransformFileOptimizer {
         if (chunk1.file != chunk2.file) return null;
         if (chunk1.offset + chunk1.length != chunk2.offset) return null;
         if (chunk1.transformedOffset + chunk1.length != chunk2.transformedOffset) return null;
-        return new DataChunk(chunk1.tf, chunk1.transformedOffset, chunk1.file, chunk1.offset, chunk1.length + chunk2.length);
+        return new DataChunk(chunk1.transformedOffset, chunk1.file, chunk1.offset, chunk1.length + chunk2.length);
     }
 }

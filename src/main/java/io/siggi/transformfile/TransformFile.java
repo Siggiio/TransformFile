@@ -91,7 +91,7 @@ public class TransformFile extends InputStream {
                         int fileIndex = (int) Util.readVarInt(in);
                         long offset = Util.readVarInt(in);
                         long length = Util.readVarInt(in);
-                        dataChunks.add(new DataChunk(this, transformedOffset, fileIndex, offset, length));
+                        dataChunks.add(new DataChunk(transformedOffset, fileIndex, offset, length));
                         highLength = Math.max(highLength, offset + length);
                     }
                     break;

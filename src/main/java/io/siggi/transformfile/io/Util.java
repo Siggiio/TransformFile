@@ -64,8 +64,12 @@ public class Util {
         return b;
     }
 
-    public static String readString(InputStream in) throws IOException {
-        return new String(readBytes(in, (int) readVarInt(in)), StandardCharsets.UTF_8);
+    public static String readString(InputStream in, int maxSize) throws IOException {
+        int size = (int) readVarInt(in);
+        if (size > maxSize) {
+            throw new IOException("Oversized string, length = " + size + ", max length = " + maxSize);
+        }
+        return new String(readBytes(in, size), StandardCharsets.UTF_8);
     }
 
     public static void writeString(OutputStream out, String string) throws IOException {

@@ -61,7 +61,7 @@ public class TransformFile extends InputStream {
                         fileList.add("");
                         fileList:
                         for (int i = 0; i < fileCount; i++) {
-                            String name = Util.readString(in);
+                            String name = Util.readString(in, 4096);
                             String[] names = name.split(":");
                             for (int j = 0; j < names.length; j++) {
                                 String n = names[j];
@@ -96,7 +96,7 @@ public class TransformFile extends InputStream {
                     }
                     break;
                     case 3: { // file name
-                        filename = Util.readString(in);
+                        filename = Util.readString(in, 4096);
                     }
                     break;
                     case 4: { // parent directory distance to scan for dependency files

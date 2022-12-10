@@ -59,7 +59,7 @@ public class TransformFile extends InputStream {
             boolean noDataChunks = false;
             raf = new RandomAccessFile(file, "r");
             RafInputStream rafIn = new RafInputStream(raf, false);
-            InputStream bufferedIn = new BufferedInputStream(rafIn);
+            InputStream bufferedIn = new BufferedInputStream(rafIn, 65536);
             CountingInputStream in = new CountingInputStream(bufferedIn);
             int version = (int) Util.readVarInt(in);
             packetIO = PacketIO.get(version);
@@ -158,7 +158,7 @@ public class TransformFile extends InputStream {
             this.rafs = new RandomAccessFile[files.length];
             this.rafs[0] = raf;
             if (noDataChunks) {
-                packetReader = new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], startOfChunks, false)), packetIO);
+                packetReader = new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], startOfChunks, false), 65536), packetIO);
             } else {
                 packetReader = new MemoryDataChunkPacketReader(chunks, 0);
             }
@@ -353,7 +353,7 @@ public class TransformFile extends InputStream {
         rafs[0].seek(indexOffset + offsetInIndex);
         RafInputStream in = new RafInputStream(rafs[0], false);
         long jumpTo = startOfChunks + Util.readLong(in);
-        return new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], jumpTo, false)), packetIO);
+        return new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], jumpTo, false), 65536), packetIO);
     }
 
     public long skip(long n) throws IOException {

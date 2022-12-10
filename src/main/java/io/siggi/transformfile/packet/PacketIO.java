@@ -3,6 +3,8 @@ package io.siggi.transformfile.packet;
 import io.siggi.transformfile.exception.IncompatibleFileException;
 import io.siggi.transformfile.io.Util;
 import io.siggi.transformfile.packet.types.Packet;
+import io.siggi.transformfile.packet.types.PacketOffsets;
+import io.siggi.transformfile.packet.types.PacketCloseFile;
 import io.siggi.transformfile.packet.types.PacketDataChunk;
 import io.siggi.transformfile.packet.types.PacketEnd;
 import io.siggi.transformfile.packet.types.PacketFileList;
@@ -65,6 +67,8 @@ public final class PacketIO {
         register(PacketDataChunk.class);
         register(PacketFileName.class);
         register(PacketParentDirectoryDistance.class);
+        register(PacketCloseFile.class);
+        register(PacketOffsets.class);
     }
 
     public int getProtocolVersion() {

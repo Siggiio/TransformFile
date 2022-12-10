@@ -6,20 +6,29 @@ import io.siggi.transformfile.io.LimitInputStream;
 import io.siggi.transformfile.io.RafInputStream;
 import io.siggi.transformfile.io.Util;
 
+import io.siggi.transformfile.packet.InputStreamPacketReader;
+import io.siggi.transformfile.packet.MemoryDataChunkPacketReader;
 import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.PacketReader;
 import io.siggi.transformfile.packet.types.Packet;
+import io.siggi.transformfile.packet.types.PacketCloseFile;
 import io.siggi.transformfile.packet.types.PacketDataChunk;
 import io.siggi.transformfile.packet.types.PacketFileList;
 import io.siggi.transformfile.packet.types.PacketFileName;
+import io.siggi.transformfile.packet.types.PacketOffsets;
 import io.siggi.transformfile.packet.types.PacketParentDirectoryDistance;
+import io.siggi.transformfile.packet.types.PacketType;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 public class TransformFile extends InputStream {
     final String[] files;
-    final DataChunk[] chunks;
+    DataChunk[] chunks;
     final long dataFileOffset;
+    final long startOfChunks;
+    final long indexOffset;
     final RandomAccessFile[] rafs;
     private final String filename;
     private final File file;
@@ -27,7 +36,7 @@ public class TransformFile extends InputStream {
     private final long length;
     private final byte[] one = new byte[1];
     private boolean closed = false;
-    private int currentIndex = -1;
+    private PacketReader packetReader = null;
     private InputStream currentInput = null;
     private long currentOffset = 0L;
     private int getChunksLastPosition = 0;
@@ -43,8 +52,11 @@ public class TransformFile extends InputStream {
             this.parentDirectory = file.getParentFile();
             String xfrName = file.getName();
             long dataFileOffset = -1L;
+            long startOfChunks = -1L;
+            long indexOffset = -1L;
             List<String> fileList = null;
             List<DataChunk> dataChunks = new LinkedList<>();
+            boolean noDataChunks = false;
             raf = new RandomAccessFile(file, "r");
             RafInputStream rafIn = new RafInputStream(raf, false);
             InputStream bufferedIn = new BufferedInputStream(rafIn);
@@ -52,12 +64,17 @@ public class TransformFile extends InputStream {
             int version = (int) Util.readVarInt(in);
             packetIO = PacketIO.get(version);
             int parentScan = 0;
+            long startOfPacket = 0L;
+            long endOfPacket = in.getCount();
+            Packet packet = null;
             readLoop:
             while (true) {
-                Packet packet = packetIO.read(in);
+                packet = packetIO.read(in);
+                startOfPacket = endOfPacket;
+                endOfPacket = in.getCount();
                 switch (packet.getPacketType()) {
                     case END:
-                        dataFileOffset = in.getCount();
+                        dataFileOffset = endOfPacket;
                         break readLoop;
                     case FILE_LIST: {
                         PacketFileList packetFileList = (PacketFileList) packet;
@@ -92,6 +109,9 @@ public class TransformFile extends InputStream {
                     }
                     break;
                     case DATA_CHUNK: {
+                        if (startOfChunks == -1L) {
+                            startOfChunks = startOfPacket;
+                        }
                         DataChunk dataChunk = ((PacketDataChunk) packet).getDataChunk();
                         dataChunks.add(dataChunk);
                         highLength = Math.max(highLength, dataChunk.offset + dataChunk.length);
@@ -105,22 +125,43 @@ public class TransformFile extends InputStream {
                         parentScan = ((PacketParentDirectoryDistance) packet).getDistance();
                     }
                     break;
+                    case CLOSE_FILE:
+                        break;
+                    case OFFSETS: {
+                        startOfChunks = endOfPacket;
+                        PacketOffsets offsets = ((PacketOffsets) packet);
+                        dataFileOffset = endOfPacket + offsets.getNonRedundantOffset();
+                        indexOffset = endOfPacket + offsets.getAddressIndexOffset();
+                        highLength = Math.max(highLength, offsets.getResultSize());
+                        if (indexOffset >= 0L) {
+                            noDataChunks = true;
+                            break readLoop;
+                        }
+                    }
+                    break;
                     default: {
                         throw new IOException("Invalid TransformFile - Unhandled packet type " + packet.getPacketType());
                     }
                 }
             }
             if (dataFileOffset == -1L)
-                throw new IOException("Invalid TransformFile - Never got END command");
+                throw new IOException("Invalid TransformFile - Never got END or OFFSETS command");
             if (fileList == null)
                 throw new IOException("Invalid TransformFile - Never got File list");
             this.filename = filename;
             files = fileList.toArray(new String[fileList.size()]);
-            chunks = dataChunks.toArray(dataChunks.toArray(new DataChunk[dataChunks.size()]));
+            chunks = noDataChunks ? null : dataChunks.toArray(dataChunks.toArray(new DataChunk[dataChunks.size()]));
             this.dataFileOffset = dataFileOffset;
             this.length = highLength;
+            this.startOfChunks = startOfChunks;
+            this.indexOffset = indexOffset;
             this.rafs = new RandomAccessFile[files.length];
             this.rafs[0] = raf;
+            if (noDataChunks) {
+                packetReader = new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], startOfChunks, false)), packetIO);
+            } else {
+                packetReader = new MemoryDataChunkPacketReader(chunks, 0);
+            }
             success = true;
         } finally {
             if (!success) {
@@ -132,7 +173,24 @@ public class TransformFile extends InputStream {
         }
     }
 
+    void loadChunks() {
+        if (chunks != null) return;
+        List<DataChunk> chunkList = new ArrayList<>();
+        try (RafInputStream in = new RafInputStream(rafs[0], startOfChunks, false)) {
+            PacketReader reader = new InputStreamPacketReader(in, packetIO);
+            Packet packet;
+            while ((packet = reader.readPacket()) != null) {
+                if (packet.getPacketType() != PacketType.DATA_CHUNK) continue;
+                PacketDataChunk packetDataChunk = ((PacketDataChunk) packet);
+                chunkList.add(packetDataChunk.getDataChunk());
+            }
+        } catch (Exception e) {
+        }
+        chunks = chunkList.toArray(new DataChunk[chunkList.size()]);
+    }
+
     LinkedList<DataChunk> getChunks(int fileIndex) {
+        if (chunks == null) loadChunks();
         LinkedList<DataChunk> list = new LinkedList<>();
         for (DataChunk chunk : chunks) {
             if (chunk.file == fileIndex) {
@@ -143,6 +201,7 @@ public class TransformFile extends InputStream {
     }
 
     LinkedList<DataChunk> getChunks(long start, long end) {
+        if (chunks == null) loadChunks();
         LinkedList<DataChunk> list = new LinkedList<>();
         int startPosition = getChunksLastPosition;
         while (startPosition > 0 && chunks[startPosition].transformedOffset > start) {
@@ -173,20 +232,6 @@ public class TransformFile extends InputStream {
         return rafs[fileIndex] = new RandomAccessFile(new File(parentDirectory, files[fileIndex]), "r");
     }
 
-    private LimitInputStream getStream(int fileIndex, long offset, long length) throws IOException {
-        RandomAccessFile raf = getRandomAccessFile(fileIndex);
-        if (fileIndex == 0)
-            raf.seek(offset + dataFileOffset);
-        else
-            raf.seek(offset);
-        return new LimitInputStream(new RafInputStream(raf, false), length, false);
-    }
-
-    private LimitInputStream getStream(int chunkNumber) throws IOException {
-        DataChunk chunk = chunks[chunkNumber];
-        return getStream(chunk.file, chunk.offset, chunk.length);
-    }
-
     @Override
     public void close() throws IOException {
         closed = true;
@@ -212,24 +257,59 @@ public class TransformFile extends InputStream {
 
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
-        if (currentIndex == -1) {
-            currentIndex = 0;
-            currentInput = getStream(0);
+        if (currentInput == null) {
+            currentInput = nextInput();
+            if (currentInput == null) {
+                return -1;
+            }
         }
         while (true) {
             int amount = currentInput.read(buffer, offset, length);
             if (amount < 0) {
-                currentIndex += 1;
-                if (currentIndex >= chunks.length) {
-                    currentIndex -= 1;
+                currentInput = nextInput();
+                if (currentInput == null) {
                     return -1;
                 }
-                currentInput = getStream(currentIndex);
             } else {
                 currentOffset += amount;
                 return amount;
             }
         }
+    }
+
+    private InputStream getStream(DataChunk chunk) throws IOException {
+        int fileIndex = chunk.file;
+        long offset = chunk.offset;
+        RandomAccessFile raf = getRandomAccessFile(fileIndex);
+        if (fileIndex == 0)
+            raf.seek(offset + dataFileOffset);
+        else
+            raf.seek(offset);
+        return new LimitInputStream(new RafInputStream(raf, false), chunk.length, false);
+    }
+
+    private InputStream nextInput() throws IOException {
+        Packet packet;
+        while ((packet = packetReader.readPacket()) != null) {
+            switch (packet.getPacketType()) {
+                case END:
+                    return null;
+                case CLOSE_FILE: {
+                    int fileIndex = ((PacketCloseFile) packet).getFileIndex();
+                    if (fileIndex < 1) break;
+                    try {
+                        rafs[fileIndex].close();
+                    } catch (IOException e) {
+                    }
+                    rafs[fileIndex] = null;
+                }
+                break;
+                case DATA_CHUNK: {
+                    return getStream(((PacketDataChunk) packet).getDataChunk());
+                }
+            }
+        }
+        return null;
     }
 
     public long getFilePointer() {
@@ -241,16 +321,39 @@ public class TransformFile extends InputStream {
     }
 
     public void seek(long offset) throws IOException {
-        for (int i = 0; i < chunks.length; i++) {
-            if (chunks[i].offset <= offset && chunks[i].offset + chunks[i].length < offset) {
-                currentIndex = i;
-                currentInput = getStream(currentIndex);
-                currentInput.skip(offset - chunks[i].offset);
+        if (chunks == null) {
+            packetReader = createPacketReader(offset);
+        } else {
+            packetReader = new MemoryDataChunkPacketReader(chunks, 0);
+        }
+        Packet packet;
+        while ((packet = packetReader.readPacket()) != null) {
+            switch (packet.getPacketType()) {
+                case END:
+                    currentInput = null;
+                    return;
+                case DATA_CHUNK:
+                    break;
+                default:
+                    continue;
+            }
+            DataChunk chunk = ((PacketDataChunk) packet).getDataChunk();
+            if (chunk.transformedOffset <= offset && chunk.transformedOffset + chunk.length < offset) {
+                currentInput = getStream(chunk);
+                currentInput.skip(offset - chunk.transformedOffset);
                 currentOffset = offset;
                 return;
             }
         }
         throw new IOException("Invalid offset " + offset);
+    }
+
+    private PacketReader createPacketReader(long offset) throws IOException {
+        long offsetInIndex = (offset / 131072L) * 8L;
+        rafs[0].seek(indexOffset + offsetInIndex);
+        RafInputStream in = new RafInputStream(rafs[0], false);
+        long jumpTo = startOfChunks + Util.readLong(in);
+        return new InputStreamPacketReader(new BufferedInputStream(new RafInputStream(rafs[0], jumpTo, false)), packetIO);
     }
 
     public long skip(long n) throws IOException {

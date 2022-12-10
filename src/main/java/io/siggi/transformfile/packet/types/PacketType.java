@@ -5,5 +5,7 @@ public enum PacketType {
     DATA_CHUNK,
     FILE_NAME,
     PARENT_DIRECTORY_DISTANCE,
+    CLOSE_FILE,
+    OFFSETS,
     END;
 }

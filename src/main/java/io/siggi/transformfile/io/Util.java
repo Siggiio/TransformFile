@@ -51,6 +51,34 @@ public class Util {
         }
     }
 
+    public static int read(InputStream in) throws IOException {
+        int value = in.read();
+        if (value < 0) throw new IOException("End of stream");
+        return value;
+    }
+
+    public static long readLong(InputStream in) throws IOException {
+        return (((long) read(in)) << 56)
+            | (((long) read(in)) << 48)
+            | (((long) read(in)) << 40)
+            | (((long) read(in)) << 32)
+            | (((long) read(in)) << 24)
+            | (((long) read(in)) << 16)
+            | (((long) read(in)) << 8)
+            | ((long) read(in));
+    }
+
+    public static void writeLong(OutputStream out, long value) throws IOException {
+        out.write(((int) (value >> 56)) & 0xff);
+        out.write(((int) (value >> 48)) & 0xff);
+        out.write(((int) (value >> 40)) & 0xff);
+        out.write(((int) (value >> 32)) & 0xff);
+        out.write(((int) (value >> 24)) & 0xff);
+        out.write(((int) (value >> 16)) & 0xff);
+        out.write(((int) (value >> 8)) & 0xff);
+        out.write(((int) value) & 0xff);
+    }
+
     public static byte[] readBytes(InputStream in, int count) throws IOException {
         byte[] b = new byte[count];
         int c = 0;

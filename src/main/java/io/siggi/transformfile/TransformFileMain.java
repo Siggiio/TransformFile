@@ -82,6 +82,7 @@ public class TransformFileMain {
             case "info":
             case "biginfo": {
                 try (TransformFile file = new TransformFile(new File(args[1]))) {
+                    file.loadChunks();
                     // starting at 1 is not a mistake
                     // index 0 refers to the xfr file itself
                     System.out.println("File name: " + file.getFilename());

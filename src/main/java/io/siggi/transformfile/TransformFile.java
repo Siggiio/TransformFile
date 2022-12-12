@@ -84,18 +84,17 @@ public class TransformFile extends InputStream {
                         for (int i = 1; i < fileList.size(); i++) {
                             String name = fileList.get(i);
                             String[] names = name.split(":");
+                            fileList.set(i, names[0]);
                             for (int j = 0; j < names.length; j++) {
                                 String n = names[j];
                                 if (n.length() >= 2 && n.charAt(0) == '\0') {
                                     int removeFromEnd = (int) n.charAt(1);
                                     n = xfrName.substring(0, xfrName.length() - removeFromEnd) + n.substring(2);
                                 }
-                                names[j] = n;
-                            }
-                            for (int j = 0; j < names.length; j++) {
+                                if (j == 0) fileList.set(i, n);
                                 String parentScanPrefix = "";
                                 for (int k = 0; k <= parentScan; k++) {
-                                    String path = parentScanPrefix + names[j];
+                                    String path = parentScanPrefix + n;
                                     File f = new File(parentDirectory, path);
                                     if (f.exists()) {
                                         fileList.set(i, path);
@@ -104,7 +103,6 @@ public class TransformFile extends InputStream {
                                     parentScanPrefix += "../";
                                 }
                             }
-                            fileList.set(i, names[0]);
                         }
                     }
                     break;

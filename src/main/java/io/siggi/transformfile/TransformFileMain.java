@@ -80,9 +80,12 @@ public class TransformFileMain {
             }
             break;
             case "info":
-            case "biginfo": {
+            case "biginfo":
+            case "superinfo": {
                 try (TransformFile file = TransformFile.open(new File(args[1]))) {
-                    file.loadChunks();
+                    if (!command.equals("info")) {
+                        file.loadChunks();
+                    }
                     // starting at 1 is not a mistake
                     // index 0 refers to the xfr file itself
                     System.out.println("File name: " + file.getFilename());
@@ -90,6 +93,9 @@ public class TransformFileMain {
                     System.out.println("Dependencies:");
                     for (int i = 1; i < file.files.length; i++) {
                         System.out.println(i + " " + file.files[i]);
+                    }
+                    if (command.equals("info")) {
+                        break;
                     }
                     System.out.println();
                     System.out.println("Chunk count: " + file.chunks.length);
@@ -113,7 +119,7 @@ public class TransformFileMain {
                     System.out.println("Non-XFR chunks: " + nonXfrChunks);
                     System.out.println("Non-XFR chunk total size: " + Util.sizeToHumanReadable(totalSizeOutsideXfr) + " (" + totalSizeOutsideXfr + ")");
                     System.out.println();
-                    if (command.equals("biginfo")) {
+                    if (command.equals("superinfo")) {
                         for (DataChunk chunk : file.chunks) {
                             System.out.println(chunk.file + " 0x" + Long.toString(chunk.offset + (chunk.file == 0 ? file.dataFileOffset : 0L), 16) + " 0x" + Long.toString(chunk.length, 16) + " -> 0x" + Long.toString(chunk.transformedOffset, 16));
                         }

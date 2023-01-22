@@ -90,9 +90,9 @@ public class TransformFileMain {
                     // index 0 refers to the xfr file itself
                     System.out.println("File name: " + file.getFilename());
                     System.out.println();
-                    System.out.println("Dependencies:");
+                    System.out.println("Dependencies (" + (file.files.length - 1) + "):");
                     for (int i = 1; i < file.files.length; i++) {
-                        System.out.println(i + " " + file.files[i]);
+                        System.out.println(file.files[i]);
                     }
                     if (command.equals("info")) {
                         break;

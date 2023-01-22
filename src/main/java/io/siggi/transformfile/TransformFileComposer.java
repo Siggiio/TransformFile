@@ -1,12 +1,10 @@
 package io.siggi.transformfile;
 
-import io.siggi.transformfile.exception.IncompatibleFileException;
 import io.siggi.transformfile.exception.TransformFileException;
 import io.siggi.transformfile.io.LimitInputStream;
-import io.siggi.transformfile.io.RafInputStream;
+import io.siggi.transformfile.io.RandomAccessInputStream;
 import io.siggi.transformfile.io.Util;
 import io.siggi.transformfile.packet.PacketIO;
-import io.siggi.transformfile.packet.types.PacketDataChunk;
 import io.siggi.transformfile.packet.types.PacketEnd;
 import io.siggi.transformfile.packet.types.PacketFileList;
 import io.siggi.transformfile.packet.types.PacketFileName;
@@ -23,8 +21,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import static io.siggi.transformfile.io.Util.copy;
-import static io.siggi.transformfile.io.Util.writeString;
-import static io.siggi.transformfile.io.Util.writeVarInt;
 
 public class TransformFileComposer implements Closeable {
     private static final int bufferSize = 16384;
@@ -84,7 +80,7 @@ public class TransformFileComposer implements Closeable {
                     filename = filename.substring(0, colonSymbol);
                 }
                 if (xfr != null) {
-                    translateFiles[i] = new TransformFile(new File(xfr));
+                    translateFiles[i] = TransformFile.open(new File(xfr));
                 }
                 this.originFiles[i] = new File(filename);
             }
@@ -220,7 +216,7 @@ public class TransformFileComposer implements Closeable {
                     long maxRead = chunkLength;
                     newResult.overrideInput = () -> {
                         finalRaf.seek(seekOffset);
-                        return new LimitInputStream(new RafInputStream(finalRaf, false), maxRead, false);
+                        return new LimitInputStream(new RandomAccessInputStream(finalRaf, false), maxRead, false);
                     };
                 } else {
                     newResult = new SearchResult(result.fileIndex, veryOriginOffset, chunkLength, destPoint);
@@ -255,7 +251,7 @@ public class TransformFileComposer implements Closeable {
             finalRaf.seek(result.offset);
             try (InputStream in = result.overrideInput != null
                 ? result.overrideInput.get()
-                : new LimitInputStream(new RafInputStream(finalRaf, false), result.length, false)) {
+                : new LimitInputStream(new RandomAccessInputStream(finalRaf, false), result.length, false)) {
                 copy(in, out);
             }
         }
@@ -290,8 +286,8 @@ public class TransformFileComposer implements Closeable {
             return result;
         RandomAccessFile rafA = finalRaf;
         RandomAccessFile rafB = originRafs[result.fileIndex - 1];
-        InputStream inA = new RafInputStream(rafA, false);
-        InputStream inB = new RafInputStream(rafB, false);
+        InputStream inA = new RandomAccessInputStream(rafA, false);
+        InputStream inB = new RandomAccessInputStream(rafB, false);
         int lowExpansion = 0;
         lowExpansion:
         {
@@ -363,7 +359,7 @@ public class TransformFileComposer implements Closeable {
 
     private SearchResult search(byte[] buffer, int fileIndex, long filePointer) throws IOException {
         RandomAccessFile raf = originRafs[fileIndex];
-        RafInputStream in = new RafInputStream(raf, false);
+        RandomAccessInputStream in = new RandomAccessInputStream(raf, false);
         long currentPosition = 0L;
         long filesize = raf.length();
         if (lookahead > 0L) {
@@ -458,7 +454,7 @@ public class TransformFileComposer implements Closeable {
     }
 
     private int readFully(RandomAccessFile raf, byte[] buffer) throws IOException {
-        return readFully(new RafInputStream(raf, false), buffer);
+        return readFully(new RandomAccessInputStream(raf, false), buffer);
     }
 
     @FunctionalInterface

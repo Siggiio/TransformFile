@@ -1,7 +1,8 @@
 package io.siggi.transformfile;
 
 import io.siggi.transformfile.io.LimitInputStream;
-import io.siggi.transformfile.io.RafInputStream;
+import io.siggi.transformfile.io.RandomAccessData;
+import io.siggi.transformfile.io.RandomAccessInputStream;
 
 import io.siggi.transformfile.io.Util;
 import io.siggi.transformfile.packet.PacketIO;
@@ -14,7 +15,6 @@ import io.siggi.transformfile.packet.types.PacketOffsets;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.*;
 
 import static io.siggi.transformfile.io.Util.*;
@@ -102,9 +102,9 @@ public class TransformFileOptimizer {
         packetIO.write(out, new PacketOffsets(chunksBufferSize, chunksBufferSize + nonRedundantSize, resultFileSize));
         chunksBuffer.writeTo(out);
 
-        RandomAccessFile raf = tf.rafs[0];
-        raf.seek(tf.dataFileOffset);
-        LimitInputStream in = new LimitInputStream(new RafInputStream(raf, false), nonRedundantSize, false);
+        RandomAccessData rad = tf.rads[0];
+        rad.seek(tf.dataFileOffset);
+        LimitInputStream in = new LimitInputStream(new RandomAccessInputStream(rad, false), nonRedundantSize, false);
         copy(in, out);
 
         for (long l : offsets) {

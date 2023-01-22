@@ -4,26 +4,29 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 
-public class RafInputStream extends InputStream {
-    private final RandomAccessFile raf;
+public class RandomAccessInputStream extends InputStream {
+    private final RandomAccessData rad;
     private final boolean relayClose;
     private final byte[] one = new byte[1];
     private long markPos = -1L;
-    private long offset;
+    private long filePointer;
 
-    public RafInputStream(RandomAccessFile raf, boolean relayClose) {
-        this(raf, -1L, relayClose);
+    public RandomAccessInputStream(RandomAccessFile raf, boolean relayClose) {
+        this(new RandomAccessDataFile(raf), relayClose);
     }
-    public RafInputStream(RandomAccessFile raf, long offset, boolean relayClose) {
-        this.raf = raf;
-        this.offset = offset;
+    public RandomAccessInputStream(RandomAccessData rad, boolean relayClose) {
+        this(rad, -1L, relayClose);
+    }
+    public RandomAccessInputStream(RandomAccessData rad, long filePointer, boolean relayClose) {
+        this.rad = rad;
+        this.filePointer = filePointer;
         this.relayClose = relayClose;
     }
 
     private void seekToOffset() throws IOException {
-        if (offset < 0L) return;
-        if (raf.getFilePointer() != offset) {
-            raf.seek(offset);
+        if (filePointer < 0L) return;
+        if (rad.getFilePointer() != filePointer) {
+            rad.seek(filePointer);
         }
     }
 
@@ -42,23 +45,23 @@ public class RafInputStream extends InputStream {
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
         seekToOffset();
-        int amount = raf.read(buffer, offset, length);
-        if (this.offset >= 0L && amount >= 0) this.offset += amount;
+        int amount = rad.read(buffer, offset, length);
+        if (filePointer >= 0L && amount >= 0) filePointer += amount;
         return amount;
     }
 
     @Override
     public long skip(long n) throws IOException {
-        long oldPointer = offset >= 0L ? offset : raf.getFilePointer();
-        long newPointer = Math.max(0L, Math.min(raf.length(), oldPointer + n));
-        if (offset >= 0L) offset = newPointer;
-        else raf.seek(newPointer);
+        long oldPointer = filePointer >= 0L ? filePointer : rad.getFilePointer();
+        long newPointer = Math.max(0L, Math.min(rad.length(), oldPointer + n));
+        if (filePointer >= 0L) filePointer = newPointer;
+        else rad.seek(newPointer);
         return newPointer - oldPointer;
     }
 
     public void seek(long offset) throws IOException {
-        if (this.offset >= 0L) this.offset = offset;
-        else raf.seek(offset);
+        if (filePointer >= 0L) filePointer = offset;
+        else rad.seek(offset);
     }
 
     @Override
@@ -68,7 +71,7 @@ public class RafInputStream extends InputStream {
             return;
         }
         try {
-            markPos = offset >= 0L ? offset : raf.getFilePointer();
+            markPos = filePointer >= 0L ? filePointer : rad.getFilePointer();
         } catch (IOException e) {
             markPos = -1;
         }
@@ -79,8 +82,8 @@ public class RafInputStream extends InputStream {
         if (markPos == -1L) {
             throw new IOException("Mark never set");
         }
-        if (offset >= 0L) offset = markPos;
-        else raf.seek(markPos);
+        if (filePointer >= 0L) filePointer = markPos;
+        else rad.seek(markPos);
     }
 
     @Override
@@ -89,13 +92,13 @@ public class RafInputStream extends InputStream {
     }
 
     public long getFilePointer() throws IOException {
-        return offset >= 0L ? offset : raf.getFilePointer();
+        return filePointer >= 0L ? filePointer : rad.getFilePointer();
     }
 
     @Override
     public void close() throws IOException {
         if (relayClose) {
-            raf.close();
+            rad.close();
         }
     }
 }

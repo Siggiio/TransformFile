@@ -81,7 +81,7 @@ public class TransformFileMain {
             break;
             case "info":
             case "biginfo": {
-                try (TransformFile file = new TransformFile(new File(args[1]))) {
+                try (TransformFile file = TransformFile.open(new File(args[1]))) {
                     file.loadChunks();
                     // starting at 1 is not a mistake
                     // index 0 refers to the xfr file itself
@@ -130,7 +130,7 @@ public class TransformFileMain {
                     args[2] = "-";
                 }
                 if (args.length == 2) {
-                    try (TransformFile in = new TransformFile(xfrFile)) {
+                    try (TransformFile in = TransformFile.open(xfrFile)) {
                         String destinationFile = in.getFilename();
                         if (destinationFile == null) {
                             System.out.println("XFR does not specify a destination filename, you need to specify one.");
@@ -142,12 +142,12 @@ public class TransformFileMain {
                     }
                 } else if (args.length == 3) {
                     if (args[2].equals("-")) {
-                        try (TransformFile in = new TransformFile(xfrFile)) {
+                        try (TransformFile in = TransformFile.open(xfrFile)) {
                             copy(in, System.out);
                         }
                     } else {
                         try (FileOutputStream out = new FileOutputStream(args[2]);
-                             TransformFile in = new TransformFile(xfrFile)) {
+                             TransformFile in = TransformFile.open(xfrFile)) {
                             copy(in, out);
                         }
                     }
@@ -156,7 +156,7 @@ public class TransformFileMain {
             break;
             case "flip":
             case "f": {
-                try (TransformFile tf = new TransformFile(new File(args[1]))) {
+                try (TransformFile tf = TransformFile.open(new File(args[1]))) {
                     try (FileOutputStream out = new FileOutputStream(args[3])) {
                         int fileIndex = Integer.parseInt(args[2]);
                         String newSourceName = args.length > 4 ? args[4] : tf.getFilename();
@@ -167,7 +167,7 @@ public class TransformFileMain {
             break;
             case "optimize":
             case "compact": {
-                try (TransformFile tf = new TransformFile(new File(args[1]))) {
+                try (TransformFile tf = TransformFile.open(new File(args[1]))) {
                     try (FileOutputStream out = new FileOutputStream(args[2])) {
                         TransformFileOptimizer.optimize(tf, out);
                     }
@@ -178,7 +178,7 @@ public class TransformFileMain {
 //		if (args.length > 0 && args[0].equalsIgnoreCase("compose")) {
 //			TransformFileComposer.transform(512, new File("sample.xfr"), new File("sample.m4v"), new File("sample.mkv"));
 //		} else {
-//			try (TransformFile in = new TransformFile(new File("testfile.xfr"))) {
+//			try (TransformFile in = TransformFile.open(new File("testfile.xfr"))) {
 //				copy(in, System.out);
 //			}
 //		}

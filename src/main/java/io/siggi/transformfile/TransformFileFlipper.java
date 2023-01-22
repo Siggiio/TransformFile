@@ -1,7 +1,7 @@
 package io.siggi.transformfile;
 
 import io.siggi.transformfile.io.LimitInputStream;
-import io.siggi.transformfile.io.RafInputStream;
+import io.siggi.transformfile.io.RandomAccessInputStream;
 
 import io.siggi.transformfile.packet.PacketIO;
 import io.siggi.transformfile.packet.types.PacketEnd;
@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,7 +81,7 @@ public class TransformFileFlipper {
 
         if (!indexZeroChunks.isEmpty()) {
             try (RandomAccessFile raf = new RandomAccessFile(newDestination, "r")) {
-                RafInputStream rIn = new RafInputStream(raf, false);
+                RandomAccessInputStream rIn = new RandomAccessInputStream(raf, false);
                 for (DataChunk chunk : indexZeroChunks) {
                     raf.seek(chunk.transformedOffset);
                     LimitInputStream lIn = new LimitInputStream(rIn, chunk.length, false);

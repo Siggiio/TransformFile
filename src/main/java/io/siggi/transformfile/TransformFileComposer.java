@@ -415,7 +415,6 @@ public class TransformFileComposer implements Closeable {
     }
 
     private long skipOverUsedData(int fileIndex, long currentPosition) {
-        //if (true) return -1L;
         if (lookbehind >= 0L) return -1L;
         List<UseRange> ranges = usageRanges[fileIndex];
         for (UseRange range : ranges) {
@@ -427,7 +426,6 @@ public class TransformFileComposer implements Closeable {
     }
 
     private void markDataUsed(SearchResult result) {
-        //if (true) return;
         if (result.fileIndex == 0) return;
         int index = result.fileIndex - 1;
         highByte[index] = Math.max(highByte[index], result.offset + result.length);

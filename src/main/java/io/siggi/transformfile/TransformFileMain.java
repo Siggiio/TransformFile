@@ -14,9 +14,6 @@ import static io.siggi.transformfile.io.Util.copy;
 
 public class TransformFileMain {
     public static void main(String[] args) throws IOException, TransformFileException {
-        // compose matchSize output.xfr destination.dat origin.dat [origin2.dat] [origin3.dat]
-        // transform file.xfr output.xfr
-        // transform file.xfr (stdout)
         int cut = 0;
         for (; cut < args.length; cut++) {
             if (args[cut].startsWith("-D") && args[cut].contains("=")) {
@@ -219,12 +216,5 @@ public class TransformFileMain {
             }
             break;
         }
-//		if (args.length > 0 && args[0].equalsIgnoreCase("compose")) {
-//			TransformFileComposer.transform(512, new File("sample.xfr"), new File("sample.m4v"), new File("sample.mkv"));
-//		} else {
-//			try (TransformFile in = TransformFile.open(new File("testfile.xfr"))) {
-//				copy(in, System.out);
-//			}
-//		}
     }
 }

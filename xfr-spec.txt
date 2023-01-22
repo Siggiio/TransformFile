@@ -3,6 +3,15 @@ the very first VarInt is the xfr version
 each command is identified by a VarInt, followed by it's data
 string lengths are indicated by a VarInt prefix
 
+After end of commands, non redundant data follows.
+When a data chunk refers to file 0, it is referring to this section.
+
+After non redundant data, the address index offset follows.
+Each index position represents a 131072 byte size chunk, and points to
+the start of the first data chunk plus the address of the end of the
+offsets packet. Each index entry is an 8 byte big endian value, not a
+VarInt, to allow for random seeking.
+
 0 - end of commands
 
 1 - file list
@@ -12,7 +21,7 @@ string lengths are indicated by a VarInt prefix
   the first file in the list is at index 1
   index 0 refers to the xfr itself
 
-2 - data chunk
+2 - data chunk (must be followed by data chunk, close file, or end)
   VarInt transformedOffset
   VarInt fileIndex
   VarInt offset
@@ -26,3 +35,12 @@ string lengths are indicated by a VarInt prefix
 
 4 - parent directory levels to scan
   VarInt max number of levels to scan
+
+5 - close file (must be followed by data chunk, close file, or end)
+  VarInt the index of the file to close (the first file in the list is at index 1
+
+6 - offsets (must be followed by data chunk, close file, or end)
+  VarInt non redundant offset, from end of the offsets packet
+  VarInt address index offset, from end of the offsets packet
+  VarInt size of output file
+

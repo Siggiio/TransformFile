@@ -54,6 +54,10 @@ public class TransformFileMain {
             System.out.println("    flip file.xfr dependencyIndex output.xfr [newSourceFileName.dat]");
             System.out.println("Optimize xfr:");
             System.out.println("    optimize input.xfr output.xfr");
+            System.out.println("Rename source or targets in xfr:");
+            System.out.println("    rename input.xfr output.xfr [newSource1.dat] ... [newSourceX.dat]");
+            System.out.println("    rename input.xfr output.xfr [newTarget.dat] [newSource1.dat] ... [newSourceX.dat]");
+            System.out.println("    renametarget input.xfr output.xfr [newTarget.dat]");
             System.out.println();
             System.out.println("Options:");
             System.out.println("-Dmatchsize=[512] = minimum size to consider identical data a match");
@@ -177,6 +181,40 @@ public class TransformFileMain {
                     try (FileOutputStream out = new FileOutputStream(args[2])) {
                         TransformFileOptimizer.optimize(tf, out);
                     }
+                }
+            }
+            break;
+            case "rename":
+            case "renametarget": {
+                int dependencyCount;
+                String[] newNames = new String[args.length - 3];
+                System.arraycopy(args, 3, newNames, 0, newNames.length);
+                File sourceFile = new File(args[1]);
+                File targetFile = new File(args[2]);
+                try (TransformFile tf = TransformFile.open(sourceFile)) {
+                    dependencyCount = tf.files.length - 1;
+                }
+                if (newNames.length == 1) {
+                    if (command.equals("renametarget")) {
+                        TransformFileRenamer.rename(sourceFile, targetFile, newNames[0], null);
+                        break;
+                    } else if (dependencyCount == 1) {
+                        TransformFileRenamer.rename(sourceFile, targetFile, null, newNames);
+                        break;
+                    }
+                } else if (newNames.length == dependencyCount) {
+                    TransformFileRenamer.rename(sourceFile, targetFile, null, newNames);
+                    break;
+                } else if (newNames.length == dependencyCount + 1) {
+                    String[] newNewNames = new String[newNames.length - 1];
+                    System.arraycopy(newNames, 1, newNewNames, 0, newNewNames.length - 1);
+                    TransformFileRenamer.rename(sourceFile, targetFile, newNames[0], newNewNames);
+                    break;
+                }
+                if (command.equals("renametarget")) {
+                    System.out.println("Wrong number of names, must be exactly 1");
+                } else {
+                    System.out.println("Wrong number of names, must be either dependency count (" + dependencyCount + "), or dependency count + 1 (" + (dependencyCount + 1) + ")");
                 }
             }
             break;

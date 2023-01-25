@@ -26,10 +26,6 @@ public final class PacketFileName implements Packet {
         this.fileName = fileName;
     }
 
-    public static Supplier<PacketFileName> constructor() {
-        return PacketFileName::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         fileName = Util.readString(in, 4096);

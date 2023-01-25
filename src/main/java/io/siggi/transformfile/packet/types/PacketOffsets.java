@@ -45,10 +45,6 @@ public class PacketOffsets implements Packet {
         this.resultSize = resultSize;
     }
 
-    public static Supplier<PacketOffsets> constructor() {
-        return PacketOffsets::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         nonRedundantOffset = Util.readVarInt(in);

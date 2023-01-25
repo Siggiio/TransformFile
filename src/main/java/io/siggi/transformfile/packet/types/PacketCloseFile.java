@@ -26,10 +26,6 @@ public class PacketCloseFile implements Packet {
         this.fileIndex = fileIndex;
     }
 
-    public static Supplier<PacketCloseFile> constructor() {
-        return PacketCloseFile::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         fileIndex = (int) Util.readVarInt(in);

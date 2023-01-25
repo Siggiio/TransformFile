@@ -14,7 +14,6 @@ import io.siggi.transformfile.packet.types.PacketType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -31,14 +30,7 @@ public final class PacketIO {
     private final Map<PacketType, Integer> packetTypeToPacketId = new HashMap<>();
     private final int protocolVersion;
 
-    private void register(Class<? extends Packet> packet) {
-        Supplier<? extends Packet> constructor;
-        try {
-            Method constructorGetter = packet.getDeclaredMethod("constructor");
-            constructor = (Supplier<? extends Packet>) constructorGetter.invoke(null);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+    private <P extends Packet> void register(Class<P> packet, Supplier<P> constructor) {
         int packetId = packets.size();
         packets.add(packet);
         packetConstructors.add(constructor);
@@ -62,13 +54,13 @@ public final class PacketIO {
         if (protocolVersion < 0) throw new IllegalArgumentException("Negative protocol version");
         if (protocolVersion > HIGHEST_SUPPORTED_VERSION) throw new IncompatibleFileException(protocolVersion, HIGHEST_SUPPORTED_VERSION);
         this.protocolVersion = protocolVersion;
-        register(PacketEnd.class);
-        register(PacketFileList.class);
-        register(PacketDataChunk.class);
-        register(PacketFileName.class);
-        register(PacketParentDirectoryDistance.class);
-        register(PacketCloseFile.class);
-        register(PacketOffsets.class);
+        register(PacketEnd.class, () -> PacketEnd.instance);
+        register(PacketFileList.class, PacketFileList::new);
+        register(PacketDataChunk.class, PacketDataChunk::new);
+        register(PacketFileName.class, PacketFileName::new);
+        register(PacketParentDirectoryDistance.class, PacketParentDirectoryDistance::new);
+        register(PacketCloseFile.class, PacketCloseFile::new);
+        register(PacketOffsets.class, PacketOffsets::new);
     }
 
     public int getProtocolVersion() {

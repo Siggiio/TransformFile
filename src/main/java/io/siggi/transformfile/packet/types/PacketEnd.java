@@ -12,10 +12,6 @@ public final class PacketEnd implements Packet {
     private PacketEnd() {
     }
 
-    public static Supplier<PacketEnd> constructor() {
-        return () -> instance;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
     }

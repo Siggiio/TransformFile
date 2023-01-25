@@ -25,10 +25,6 @@ public class PacketDataChunk implements Packet {
         this.dataChunk = dataChunk;
     }
 
-    public static Supplier<PacketDataChunk> constructor() {
-        return PacketDataChunk::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         long transformedOffset = Util.readVarInt(in);

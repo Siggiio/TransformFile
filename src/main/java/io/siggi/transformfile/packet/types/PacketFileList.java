@@ -26,10 +26,6 @@ public final class PacketFileList implements Packet {
         this.fileList = fileList;
     }
 
-    public static Supplier<PacketFileList> constructor() {
-        return PacketFileList::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         int fileCount = (int) Util.readVarInt(in);

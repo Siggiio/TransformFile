@@ -24,10 +24,6 @@ public final class PacketParentDirectoryDistance implements Packet {
         this.distance = distance;
     }
 
-    public static Supplier<PacketParentDirectoryDistance> constructor() {
-        return PacketParentDirectoryDistance::new;
-    }
-
     @Override
     public void read(InputStream in, int protocolVersion) throws IOException {
         distance = (int) Util.readVarInt(in);

@@ -53,6 +53,7 @@ public class TransformFile extends InputStream {
     }
 
     private TransformFile(File file, RandomAccessData rad) throws IOException, TransformFileException {
+        assert file != null || rad != null;
         boolean success = false;
         boolean shouldCloseRadOnFail = false;
         try {

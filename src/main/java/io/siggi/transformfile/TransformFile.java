@@ -60,7 +60,7 @@ public class TransformFile extends InputStream {
             long highLength = 0L;
             String filename = null;
             this.file = file;
-            this.parentDirectory = file == null ? null : file.getParentFile();
+            this.parentDirectory = file == null ? null : file.getAbsoluteFile().getParentFile();
             String xfrName = file == null ? null : file.getName();
             long dataFileOffset = -1L;
             long startOfChunks = -1L;

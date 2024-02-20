@@ -55,6 +55,9 @@ public class TransformFileMain {
             System.out.println("    rename input.xfr output.xfr [newSource1.dat] ... [newSourceX.dat]");
             System.out.println("    rename input.xfr output.xfr [newTarget.dat] [newSource1.dat] ... [newSourceX.dat]");
             System.out.println("    renametarget input.xfr output.xfr [newTarget.dat]");
+            System.out.println("Change prefix and parent directory scan levels:");
+            System.out.println("  This works on multiple files and makes changes in place, not to new files.");
+            System.out.println("    prefixandscan prefix parentDirCount file1.xfr file2.xfr ... fileN.xfr");
             System.out.println();
             System.out.println("Options:");
             System.out.println("-Dmatchsize=[512] = minimum size to consider identical data a match");
@@ -212,6 +215,19 @@ public class TransformFileMain {
                     System.out.println("Wrong number of names, must be exactly 1");
                 } else {
                     System.out.println("Wrong number of names, must be either dependency count (" + dependencyCount + "), or dependency count + 1 (" + (dependencyCount + 1) + ")");
+                }
+            }
+            break;
+            case "prefixandscan": {
+                String prefix = args[1];
+                if (!prefix.isEmpty() && !prefix.endsWith("/")) prefix += "/";
+                int directoryScan = Integer.parseInt(args[2]);
+                List<File> files = new ArrayList<>();
+                for (int i = 3; i < args.length; i++) {
+                    files.add(new File(args[i]));
+                }
+                for (File file : files) {
+                    TransformFilePrefixAndScan.run(prefix, directoryScan, file);
                 }
             }
             break;

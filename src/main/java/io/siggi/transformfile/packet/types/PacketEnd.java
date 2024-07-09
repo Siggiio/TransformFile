@@ -24,4 +24,9 @@ public final class PacketEnd implements Packet {
     public PacketType getPacketType() {
         return PacketType.END;
     }
+
+    @Override
+    public String toString() {
+        return "End";
+    }
 }

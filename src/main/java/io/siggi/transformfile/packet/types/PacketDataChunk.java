@@ -46,4 +46,9 @@ public class PacketDataChunk implements Packet {
     public PacketType getPacketType() {
         return PacketType.DATA_CHUNK;
     }
+
+    @Override
+    public String toString() {
+        return "DataChunk file:" + dataChunk.file + ", " + dataChunk.offset + ":" + dataChunk.length + " -> " + dataChunk.transformedOffset;
+    }
 }

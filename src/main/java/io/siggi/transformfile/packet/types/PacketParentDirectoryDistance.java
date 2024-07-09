@@ -38,4 +38,9 @@ public final class PacketParentDirectoryDistance implements Packet {
     public PacketType getPacketType() {
         return PacketType.PARENT_DIRECTORY_DISTANCE;
     }
+
+    @Override
+    public String toString() {
+        return "ParentDirectoryDistance " + distance;
+    }
 }

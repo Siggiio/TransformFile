@@ -48,4 +48,14 @@ public final class PacketFileList implements Packet {
     public PacketType getPacketType() {
         return PacketType.FILE_LIST;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("FileList: ");
+        for (int i = 0; i < fileList.size(); i++) {
+            if (i != 0) sb.append(", ");
+            sb.append(fileList.get(i));
+        }
+        return sb.toString();
+    }
 }

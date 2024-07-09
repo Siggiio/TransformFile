@@ -1,11 +1,18 @@
 package io.siggi.transformfile;
 
 import io.siggi.transformfile.exception.TransformFileException;
+import io.siggi.transformfile.io.CountingInputStream;
 import io.siggi.transformfile.io.Util;
+import io.siggi.transformfile.packet.PacketIO;
+import io.siggi.transformfile.packet.types.Packet;
+import io.siggi.transformfile.packet.types.PacketType;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -228,6 +235,26 @@ public class TransformFileMain {
                 }
                 for (File file : files) {
                     TransformFilePrefixAndScan.run(prefix, directoryScan, file);
+                }
+            }
+            break;
+            case "disassemble": {
+                File file = new File(args[1]);
+                try (FileInputStream fis = new FileInputStream(file)) {
+                    InputStream bufferedIn = new BufferedInputStream(fis, 65536);
+                    CountingInputStream in = new CountingInputStream(bufferedIn);
+                    int version = (int) Util.readVarInt(in);
+                    System.out.println("0x0: XFR version: " + version);
+                    PacketIO packetIO = PacketIO.get(version);
+                    long position = in.getCount();
+                    while (true) {
+                        Packet packet = packetIO.read(in);
+                        System.out.println("0x" + Long.toString(position, 16) + ": " + packet);
+                        position = in.getCount();
+                        if (packet.getPacketType() == PacketType.END) {
+                            break;
+                        }
+                    }
                 }
             }
             break;

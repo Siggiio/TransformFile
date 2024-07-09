@@ -40,4 +40,9 @@ public class PacketCloseFile implements Packet {
     public PacketType getPacketType() {
         return PacketType.CLOSE_FILE;
     }
+
+    @Override
+    public String toString() {
+        return "CloseFile " + fileIndex;
+    }
 }

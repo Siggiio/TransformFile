@@ -63,4 +63,9 @@ public class PacketOffsets implements Packet {
     public PacketType getPacketType() {
         return PacketType.OFFSETS;
     }
+
+    @Override
+    public String toString() {
+        return "Offsets NR:" + nonRedundantOffset + ", AI:" + addressIndexOffset + ", FileSize: " + resultSize;
+    }
 }

@@ -40,4 +40,9 @@ public final class PacketFileName implements Packet {
     public PacketType getPacketType() {
         return PacketType.FILE_NAME;
     }
+
+    @Override
+    public String toString() {
+        return "FileName " + fileName;
+    }
 }

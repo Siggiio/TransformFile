@@ -33,6 +33,7 @@ public class TransformFile extends InputStream {
     final long indexOffset;
     final RandomAccessData[] rads;
     private final String filename;
+    private final boolean optimizedFile;
     private final File file;
     private final File parentDirectory;
     private final long length;
@@ -81,6 +82,7 @@ public class TransformFile extends InputStream {
             long startOfPacket = 0L;
             long endOfPacket = in.getCount();
             Packet packet = null;
+            boolean optimizedFile = false;
             readLoop:
             while (true) {
                 packet = packetIO.read(in);
@@ -146,6 +148,7 @@ public class TransformFile extends InputStream {
                         dataFileOffset = endOfPacket + offsets.getNonRedundantOffset();
                         indexOffset = endOfPacket + offsets.getAddressIndexOffset();
                         highLength = Math.max(highLength, offsets.getResultSize());
+                        optimizedFile = true;
                         if (indexOffset >= 0L) {
                             noDataChunks = true;
                             break readLoop;
@@ -162,6 +165,7 @@ public class TransformFile extends InputStream {
             if (fileList == null)
                 throw new IOException("Invalid TransformFile - Never got File list");
             this.filename = filename;
+            this.optimizedFile = optimizedFile;
             files = fileList.toArray(new String[fileList.size()]);
             chunks = noDataChunks ? null : dataChunks.toArray(dataChunks.toArray(new DataChunk[dataChunks.size()]));
             this.dataFileOffset = dataFileOffset;
@@ -392,5 +396,9 @@ public class TransformFile extends InputStream {
         long newPointer = Math.max(0L, Math.min(length(), oldPointer + n));
         seek(newPointer);
         return newPointer - oldPointer;
+    }
+
+    public boolean isOptimized() {
+        return optimizedFile;
     }
 }

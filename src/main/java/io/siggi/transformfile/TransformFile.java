@@ -22,6 +22,8 @@ import io.siggi.transformfile.packet.types.PacketParentDirectoryDistance;
 import io.siggi.transformfile.packet.types.PacketType;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -396,6 +398,10 @@ public class TransformFile extends InputStream {
         long newPointer = Math.max(0L, Math.min(length(), oldPointer + n));
         seek(newPointer);
         return newPointer - oldPointer;
+    }
+
+    public List<String> getDependencyFiles() {
+        return Collections.unmodifiableList(Arrays.asList(files));
     }
 
     public boolean isOptimized() {

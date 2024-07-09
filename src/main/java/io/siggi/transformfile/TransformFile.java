@@ -127,7 +127,7 @@ public class TransformFile extends InputStream {
                         }
                         DataChunk dataChunk = ((PacketDataChunk) packet).getDataChunk();
                         dataChunks.add(dataChunk);
-                        highLength = Math.max(highLength, dataChunk.offset + dataChunk.length);
+                        highLength = Math.max(highLength, dataChunk.transformedOffset + dataChunk.length);
                     }
                     break;
                     case FILE_NAME: {

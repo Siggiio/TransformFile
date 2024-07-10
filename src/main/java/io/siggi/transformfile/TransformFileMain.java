@@ -175,10 +175,18 @@ public class TransformFileMain {
             case "flip":
             case "f": {
                 try (TransformFile tf = TransformFile.open(new File(args[1]))) {
-                    try (FileOutputStream out = new FileOutputStream(args[3])) {
-                        int fileIndex = Integer.parseInt(args[2]);
-                        String newSourceName = args.length > 4 ? args[4] : tf.getFilename();
-                        TransformFileFlipper.flip(tf, fileIndex, out, newSourceName, new File(tf.files[fileIndex]));
+                    if (args.length == 2) {
+                        for (int i = 1; i < tf.files.length; i++) {
+                            try (FileOutputStream out = new FileOutputStream(tf.files[i] + ".xfr")) {
+                                TransformFileFlipper.flip(tf, i, out, tf.getFilename(), new File(tf.files[i]));
+                            }
+                        }
+                    } else {
+                        try (FileOutputStream out = new FileOutputStream(args[3])) {
+                            int fileIndex = Integer.parseInt(args[2]);
+                            String newSourceName = args.length > 4 ? args[4] : tf.getFilename();
+                            TransformFileFlipper.flip(tf, fileIndex, out, newSourceName, new File(tf.files[fileIndex]));
+                        }
                     }
                 }
             }

@@ -29,6 +29,7 @@ import java.util.List;
 
 public class TransformFile extends InputStream {
     final String[] files;
+    private List<String> fileList;
     DataChunk[] chunks;
     final long dataFileOffset;
     final long startOfChunks;
@@ -401,7 +402,12 @@ public class TransformFile extends InputStream {
     }
 
     public List<String> getDependencyFiles() {
-        return Collections.unmodifiableList(Arrays.asList(files));
+        if (fileList == null) {
+            List<String> fList = new ArrayList<>(Arrays.asList(files));
+            fList.remove(0);
+            fileList = Collections.unmodifiableList(fList);
+        }
+        return fileList;
     }
 
     public boolean isOptimized() {

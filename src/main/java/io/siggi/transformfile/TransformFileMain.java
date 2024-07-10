@@ -80,6 +80,7 @@ public class TransformFileMain {
                 int matchSize = Integer.parseInt(System.getProperty("matchsize", "512"));
                 long lookahead = Util.parseSize(System.getProperty("lookahead", "0"));
                 long lookbehind = Util.parseSize(System.getProperty("lookbehind", "-1"));
+                boolean likeConcatenation = Integer.parseInt(System.getProperty("likeconcatenation", "0")) != 0;
                 boolean skipNonRedundantData = Integer.parseInt(System.getProperty("skipxfrchunks", "0")) != 0;
                 String outputFile = new String(args[1]);
                 String finalFile = new String(args[2]);
@@ -87,7 +88,7 @@ public class TransformFileMain {
                 for (int i = 3; i < args.length; i++) {
                     originFiles.add(args[i]);
                 }
-                TransformFileComposer.transform(lookahead, lookbehind, matchSize, !skipNonRedundantData, outputFile, finalFile, originFiles.toArray(new String[originFiles.size()]));
+                TransformFileComposer.transform(lookahead, lookbehind, matchSize, !skipNonRedundantData, likeConcatenation, outputFile, finalFile, originFiles.toArray(new String[originFiles.size()]));
             }
             break;
             case "info":

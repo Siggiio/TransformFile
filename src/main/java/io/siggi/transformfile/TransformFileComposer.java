@@ -48,6 +48,9 @@ public class TransformFileComposer implements Closeable {
     private byte[] bufferB = new byte[bufferSize];
     private byte[] tmpBuffer = new byte[bufferA.length + bufferB.length];
 
+    private int lastIndex;
+    private boolean likeConcatenation = false;
+
     private boolean alreadyWroteHeader = false;
     private PacketIO packetIO;
 
@@ -61,10 +64,11 @@ public class TransformFileComposer implements Closeable {
         this.packetIO = packetIO;
     }
 
-    private TransformFileComposer(long lookahead, long lookbehind, int matchSize, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
+    private TransformFileComposer(long lookahead, long lookbehind, int matchSize, boolean likeConcatenation, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
         this.lookahead = lookahead;
         this.lookbehind = lookbehind;
         this.matchSize = matchSize;
+        this.likeConcatenation = likeConcatenation;
         this.transformerFile = new File(transformerFile);
         this.finalFile = new File(finalFile);
         this.originFiles = new File[originFiles.length];
@@ -104,10 +108,10 @@ public class TransformFileComposer implements Closeable {
         expansionBytesB = new byte[matchSize];
     }
 
-    public static void transform(long lookahead, long lookbehind, int matchSize, boolean copyNonRedundantData, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
+    public static void transform(long lookahead, long lookbehind, int matchSize, boolean copyNonRedundantData, boolean likeConcatenation, String transformerFile, String finalFile, String... originFiles) throws IOException, TransformFileException {
         long now = System.currentTimeMillis();
         long lastUpdate = now;
-        try (TransformFileComposer composer = new TransformFileComposer(lookahead, lookbehind, matchSize, transformerFile, finalFile, originFiles)) {
+        try (TransformFileComposer composer = new TransformFileComposer(lookahead, lookbehind, matchSize, likeConcatenation, transformerFile, finalFile, originFiles)) {
             composer.writeHeader();
             while (true) {
                 if (!composer.step()) break;
@@ -350,9 +354,20 @@ public class TransformFileComposer implements Closeable {
     }
 
     private SearchResult search(byte[] buffer, long filePointer) throws IOException {
-        for (int i = 0; i < originFiles.length; i++) {
+        int startFrom, endAt;
+        if (likeConcatenation) {
+            startFrom = Math.max(0, lastIndex - 1);
+            endAt = Math.min(originFiles.length, lastIndex + 2);
+        } else {
+            startFrom = 0;
+            endAt = originFiles.length;
+        }
+        for (int i = startFrom; i < endAt; i++) {
             SearchResult result = search(buffer, i, filePointer);
-            if (result != null) return result;
+            if (result != null) {
+                lastIndex = result.fileIndex;
+                return result;
+            }
         }
         return null;
     }

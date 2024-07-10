@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
 import static io.siggi.transformfile.io.Util.copy;
 
@@ -193,9 +194,25 @@ public class TransformFileMain {
             break;
             case "optimize":
             case "compact": {
-                try (TransformFile tf = TransformFile.open(new File(args[1]))) {
-                    try (FileOutputStream out = new FileOutputStream(args[2])) {
-                        TransformFileOptimizer.optimize(tf, out);
+                if (args.length == 3 && !(new File(args[2]).exists())) {
+                    try (TransformFile tf = TransformFile.open(new File(args[1]))) {
+                        try (FileOutputStream out = new FileOutputStream(args[2])) {
+                            TransformFileOptimizer.optimize(tf, out);
+                        }
+                    }
+                } else {
+                    for (int i = 1; i < args.length; i++) {
+                        File file = new File(args[i]);
+                        File tmpFile = new File(file.getParentFile(), UUID.randomUUID() + ".xfr");
+                        try {
+                            try (TransformFile tf = TransformFile.open(file);
+                                 FileOutputStream out = new FileOutputStream(tmpFile)) {
+                                TransformFileOptimizer.optimize(tf, out);
+                            }
+                            tmpFile.renameTo(file);
+                        } finally {
+                            if (tmpFile.exists()) tmpFile.delete();
+                        }
                     }
                 }
             }
